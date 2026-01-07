@@ -1,38 +1,30 @@
-import { ClientFetch } from "@repo/ui";
+import { ClientFetch, CreatedAt, PageHeader } from "@repo/ui";
 
-export function generateStaticParams() {
-  return [];
-}
+export const dynamic = "force-static";
 
 export async function generateMetadata({
-  params,
+	params,
 }: {
-  params: Promise<{ slug: string }>;
+	params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+	const { slug } = await params;
 
-  return {
-    title: `ISR Page - ${slug}`,
-    description: `ISR Page - ${slug}`,
-  };
+	return {
+		title: `ISR - ${slug}`,
+		description: `ISR - ${slug}`,
+	};
 }
 
 export default async function SlugPage({
-  params,
+	params,
 }: {
-  params: Promise<{ slug: string }>;
+	params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
-  const createdAt = new Date().toISOString();
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <h1 className="text-4xl font-bold mb-4">{slug}</h1>
-      <p className="text-muted-foreground mb-8">ISR Page</p>
-      <p className="text-sm text-muted-foreground mb-8">
-        Created at: <code className="font-mono">{createdAt}</code>
-      </p>
-      <ClientFetch />
-    </div>
-  );
+	return (
+		<div className="flex flex-col items-center justify-center min-h-[60vh]">
+			<PageHeader params={params} subtitle="ISR" />
+			<CreatedAt />
+			<ClientFetch params={params} />
+		</div>
+	);
 }

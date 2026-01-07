@@ -4,11 +4,9 @@ export interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-14 items-center justify-center px-4">
-        <h1 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-          {title}
-        </h1>
+    <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-xl">
+      <div className="container mx-auto flex h-16 items-center justify-center px-4">
+        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
       </div>
     </header>
   );

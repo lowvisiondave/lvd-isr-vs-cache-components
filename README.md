@@ -1,26 +1,29 @@
-# Turborepo Monorepo
+# ISR vs Cache Components Demo
 
-This is a [Turborepo](https://turbo.build/repo) monorepo containing a Next.js application and a shared UI component library.
+A side-by-side comparison of Next.js **ISR (Incremental Static Regeneration)** vs **Cache Components** (`"use cache"` directive).
 
-## What's inside?
+## What's Inside
 
-This monorepo includes the following packages/apps:
+This monorepo demonstrates two different caching strategies in Next.js:
 
-### Apps and Packages
+| App | Port | Caching Strategy |
+|-----|------|-----------------|
+| `apps/cache-components` | 3000 | Uses `"use cache"` directive for granular component-level caching |
+| `apps/isr` | 3001 | Uses ISR for page-level caching |
 
-- `web`: a [Next.js](https://nextjs.org) app (App Router)
-- `@repo/ui`: a shared React component library with Tailwind CSS
+### Key Differences
 
-Each package and app is written in [TypeScript](https://www.typescriptlang.org/).
+**Cache Components (`"use cache"`):**
+- Component-level caching granularity
+- Cache individual async components independently
+- Dynamic segments work without pre-rendering all paths
+- No need for `generateStaticParams`
 
-### Utilities
-
-This monorepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-- [Tailwind CSS](https://tailwindcss.com/) for styling
+**ISR:**
+- Page-level caching
+- Entire page cached as one unit
+- No granular component-level control
+- Traditional Next.js approach
 
 ## Getting Started
 
@@ -30,44 +33,49 @@ This monorepo has some additional tools already setup for you:
 pnpm install
 ```
 
-### Build
-
-To build all apps and packages:
-
-```bash
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages:
+### Run Both Apps
 
 ```bash
 pnpm dev
 ```
 
-### Run Linting
+Then visit:
+- **Cache Components:** [http://localhost:3000](http://localhost:3000)
+- **ISR:** [http://localhost:3001](http://localhost:3001)
 
-To lint all apps and packages:
+### Run Individual Apps
 
 ```bash
-pnpm lint
+# Cache Components only
+pnpm --filter cache-components dev
+
+# ISR only
+pnpm --filter isr dev
 ```
 
-## Using the UI Package
+## Project Structure
 
-The `@repo/ui` package contains shared React components that can be used across all apps in the monorepo.
-
-Example usage in the Next.js app:
-
-```tsx
-import { Button } from "@repo/ui";
-
-export default function Page() {
-  return <Button>Click me</Button>;
-}
+```
+├── apps/
+│   ├── cache-components/    # Next.js app using "use cache"
+│   └── isr/                 # Next.js app using ISR
+├── packages/
+│   └── ui/                  # Shared UI components
+└── package.json
 ```
 
-## Tailwind CSS
+## How to Test
 
-Tailwind CSS is configured in both the Next.js app and the UI package. The Next.js app's Tailwind config includes paths to the UI package components, ensuring that Tailwind classes used in the UI package are properly processed.
+1. Navigate to any page (e.g., `/page-1`)
+2. Note the "Created at" timestamp - this shows when the page/component was cached
+3. Refresh the page and observe:
+   - **Cache Components:** The cached component shows the same timestamp
+   - **ISR:** The entire page shows the same timestamp until revalidation
+4. The "Client Fetch" section always shows fresh data (client-side)
+
+## Tech Stack
+
+- [Next.js 16](https://nextjs.org) with App Router
+- [Turborepo](https://turbo.build/repo) for monorepo management
+- [Tailwind CSS](https://tailwindcss.com) for styling
+- [pnpm](https://pnpm.io) for package management

@@ -11,8 +11,8 @@ const sidebarLinks = [
 ];
 
 export const metadata: Metadata = {
-  title: "ISR",
-  description: "Next.js ISR Demo",
+  title: "Cache Components",
+  description: "Next.js Cache Components Demo",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen">
-        <Header title="ISR" />
+        <Header title="Cache Components" />
         <div className="container mx-auto px-6 py-8 flex gap-10">
           <Sidebar links={sidebarLinks} linkComponent={Link} />
           <main className="flex-1">{children}</main>
