@@ -1,0 +1,26 @@
+{
+  "name": "lvd-isr-vs-cache-components",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "next": "^16.1.1",
+    "postcss": "^8.5.6",
+    "prettier": "^3.7.4",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwindcss": "4.1.18",
+    "turbo": "^2.7.3",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.7.1",
+  "engines": {
+    "node": ">=18"
+  }
+}
