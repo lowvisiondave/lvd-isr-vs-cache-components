@@ -117,6 +117,7 @@ k6 run scripts/k6/repeated-access.js \
 
 - Adjust concurrency: `--vus 100` (default: 50 virtual users)
 - Run fewer iterations for quick tests: `--iterations 1000`
+- Set delay parameter: `-e DELAY=500` (default: 0) - maps to `/{delay}/{slug}` routes
 
 ### Metrics
 

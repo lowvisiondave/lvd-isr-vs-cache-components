@@ -33,12 +33,16 @@ export const defaultOptions = {
 	},
 };
 
+// Default delay parameter for routes (/{delay}/{slug})
+export const DEFAULT_DELAY = __ENV.DELAY || "0";
+
 // Generate a slug for a given index
 export function generateSlug(index) {
 	return `test-${index}`;
 }
 
-// Build full URL for a given base URL and slug
-export function buildUrl(baseUrl, slug) {
-	return `${baseUrl}/${slug}`;
+// Build full URL for a given base URL, delay, and slug
+// Route structure: /{delay}/{slug}
+export function buildUrl(baseUrl, slug, delay = DEFAULT_DELAY) {
+	return `${baseUrl}/${delay}/${slug}`;
 }
