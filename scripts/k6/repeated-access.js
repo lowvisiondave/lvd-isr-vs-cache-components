@@ -20,9 +20,10 @@ import { Counter, Trend } from 'k6/metrics';
 import { validateConfig, CACHE_URL, ISR_URL, DEFAULT_DELAY, generateSlug, buildUrl, defaultOptions } from './config.js';
 
 // Configuration (configurable via environment variables)
-const UNIQUE_ROUTES = parseInt(__ENV.UNIQUE_ROUTES || '10000', 10);
-const HITS_PER_ROUTE = parseInt(__ENV.HITS_PER_ROUTE || '10', 10);
+const UNIQUE_ROUTES = Number.parseInt(__ENV.UNIQUE_ROUTES || '10000', 10);
+const HITS_PER_ROUTE = Number.parseInt(__ENV.HITS_PER_ROUTE || '10', 10);
 const TOTAL_ITERATIONS = UNIQUE_ROUTES * HITS_PER_ROUTE;
+const VUS = Number.parseInt(__ENV.VUS || '50', 10);
 
 // Custom metrics for each app
 const cacheRequests = new Counter('cache_requests');
@@ -43,7 +44,7 @@ export const options = {
   scenarios: {
     repeated_access: {
       executor: 'shared-iterations',
-      vus: 50,
+      vus: VUS,
       iterations: TOTAL_ITERATIONS,
       maxDuration: '2h',
     },
@@ -59,6 +60,7 @@ export function setup() {
   console.log(`Unique routes: ${UNIQUE_ROUTES.toLocaleString()}`);
   console.log(`Hits per route: ${HITS_PER_ROUTE}`);
   console.log(`Total requests: ${TOTAL_ITERATIONS.toLocaleString()}`);
+  console.log(`Virtual users (VUs): ${VUS}`);
   console.log(`Delay parameter: ${DEFAULT_DELAY}`);
   console.log(`Cache Components URL: ${CACHE_URL}`);
   console.log(`ISR URL: ${ISR_URL}`);
