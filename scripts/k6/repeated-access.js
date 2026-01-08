@@ -17,12 +17,12 @@ import { check, sleep } from 'k6';
 import execution from 'k6/execution';
 import http from 'k6/http';
 import { Counter, Trend } from 'k6/metrics';
-import { validateConfig, CACHE_URL, ISR_URL, generateSlug, buildUrl, defaultOptions } from './config.js';
+import { validateConfig, CACHE_URL, ISR_URL, DEFAULT_DELAY, generateSlug, buildUrl, defaultOptions } from './config.js';
 
-// Configuration
-const UNIQUE_ROUTES = 10000;
-const HITS_PER_ROUTE = 10;
-const TOTAL_ITERATIONS = UNIQUE_ROUTES * HITS_PER_ROUTE; // 100,000 total
+// Configuration (configurable via environment variables)
+const UNIQUE_ROUTES = parseInt(__ENV.UNIQUE_ROUTES || '10000', 10);
+const HITS_PER_ROUTE = parseInt(__ENV.HITS_PER_ROUTE || '10', 10);
+const TOTAL_ITERATIONS = UNIQUE_ROUTES * HITS_PER_ROUTE;
 
 // Custom metrics for each app
 const cacheRequests = new Counter('cache_requests');
@@ -59,6 +59,7 @@ export function setup() {
   console.log(`Unique routes: ${UNIQUE_ROUTES.toLocaleString()}`);
   console.log(`Hits per route: ${HITS_PER_ROUTE}`);
   console.log(`Total requests: ${TOTAL_ITERATIONS.toLocaleString()}`);
+  console.log(`Delay parameter: ${DEFAULT_DELAY}`);
   console.log(`Cache Components URL: ${CACHE_URL}`);
   console.log(`ISR URL: ${ISR_URL}`);
   console.log('='.repeat(60));

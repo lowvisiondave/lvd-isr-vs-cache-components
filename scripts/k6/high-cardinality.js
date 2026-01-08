@@ -20,6 +20,7 @@ import http from "k6/http";
 import { Counter, Trend } from "k6/metrics";
 import {
 	CACHE_URL,
+	DEFAULT_DELAY,
 	ISR_URL,
 	buildUrl,
 	defaultOptions,
@@ -27,8 +28,8 @@ import {
 	validateConfig,
 } from "./config.js";
 
-// Total unique routes to test
-const TOTAL_ROUTES = 100000;
+// Total unique routes to test (configurable via -e ITERATIONS=N)
+const TOTAL_ROUTES = Number.parseInt(__ENV.ITERATIONS || "100000", 10);
 
 // Custom metrics for each app
 const cacheRequests = new Counter("cache_requests");
@@ -57,6 +58,7 @@ export function setup() {
 	console.log("High Cardinality Load Test");
 	console.log("=".repeat(60));
 	console.log(`Total unique routes: ${TOTAL_ROUTES.toLocaleString()}`);
+	console.log(`Delay parameter: ${DEFAULT_DELAY}`);
 	console.log(`Cache Components URL: ${CACHE_URL}`);
 	console.log(`ISR URL: ${ISR_URL}`);
 	console.log("=".repeat(60));

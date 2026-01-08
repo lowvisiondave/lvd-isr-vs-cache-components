@@ -116,8 +116,14 @@ k6 run scripts/k6/repeated-access.js \
 ### Options
 
 - Adjust concurrency: `--vus 100` (default: 50 virtual users)
-- Run fewer iterations for quick tests: `--iterations 1000`
 - Set delay parameter: `-e DELAY=500` (default: 0) - maps to `/{delay}/{slug}` routes
+
+**High Cardinality options:**
+- `-e ITERATIONS=1000` - Number of unique routes to test (default: 100000)
+
+**Repeated Access options:**
+- `-e UNIQUE_ROUTES=100` - Number of unique routes (default: 10000)
+- `-e HITS_PER_ROUTE=5` - Hits per route (default: 10)
 
 ### Metrics
 
