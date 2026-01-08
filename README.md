@@ -73,9 +73,64 @@ pnpm --filter isr dev
    - **ISR:** The entire page shows the same timestamp until revalidation
 4. The "Client Fetch" section always shows fresh data (client-side)
 
+## Load Testing
+
+This repo includes [k6](https://k6.io) load testing scripts to benchmark both caching strategies at scale.
+
+### Prerequisites
+
+Install k6:
+
+```bash
+# macOS
+brew install k6
+
+# Windows
+choco install k6
+
+# Linux
+sudo apt install k6
+```
+
+### Test Scenarios
+
+| Test | Description | Total Requests |
+|------|-------------|----------------|
+| **High Cardinality** | 100k unique routes (cache miss behavior) | 100,000 |
+| **Repeated Access** | 10k routes × 10 hits each (cache hit behavior) | 100,000 |
+
+### Running the Tests
+
+```bash
+# High cardinality test - tests cache miss / on-demand generation
+k6 run scripts/k6/high-cardinality.js \
+  -e CACHE_URL=https://your-cache-components.vercel.app \
+  -e ISR_URL=https://your-isr.vercel.app
+
+# Repeated access test - tests cache hit performance
+k6 run scripts/k6/repeated-access.js \
+  -e CACHE_URL=https://your-cache-components.vercel.app \
+  -e ISR_URL=https://your-isr.vercel.app
+```
+
+### Options
+
+- Adjust concurrency: `--vus 100` (default: 50 virtual users)
+- Run fewer iterations for quick tests: `--iterations 1000`
+
+### Metrics
+
+k6 provides built-in metrics plus custom metrics per app:
+
+- `cache_duration` / `isr_duration` - Response times per app
+- `cache_errors` / `isr_errors` - Error counts per app
+- `cache_first_hit_duration` / `isr_first_hit_duration` - First access times (repeated-access only)
+- `cache_cache_hit_duration` / `isr_cache_hit_duration` - Subsequent access times (repeated-access only)
+
 ## Tech Stack
 
 - [Next.js 16](https://nextjs.org) with App Router
 - [Turborepo](https://turbo.build/repo) for monorepo management
 - [Tailwind CSS](https://tailwindcss.com) for styling
 - [pnpm](https://pnpm.io) for package management
+- [k6](https://k6.io) for load testing
