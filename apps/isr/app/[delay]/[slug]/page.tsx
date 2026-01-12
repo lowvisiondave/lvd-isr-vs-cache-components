@@ -8,7 +8,10 @@ export async function generateMetadata({
   const { slug, delay } = await params;
 
   if (delay && Number(delay) > 0) {
-    await new Promise((resolve) => setTimeout(resolve, Number(delay)));
+    const start = Date.now();
+    while (Date.now() - start <= Number(delay)) {
+      // busy wait
+    }
   }
 
   return {
