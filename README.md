@@ -98,19 +98,28 @@ sudo apt install k6
 |------|-------------|----------------|
 | **High Cardinality** | 100k unique routes (cache miss behavior) | 100,000 |
 | **Repeated Access** | 10k routes × 10 hits each (cache hit behavior) | 100,000 |
+| **Weather Today Page** | Realistic traffic with ~67.6% HIT / ~19% MISS rate | 100,000 |
 
 ### Running the Tests
 
 ```bash
 # High cardinality test - tests cache miss / on-demand generation
 k6 run scripts/k6/high-cardinality.js \
-  -e CACHE_URL=https://your-cache-components.vercel.app \
-  -e ISR_URL=https://your-isr.vercel.app
+  -e CACHE_URL=https://lvd-cache-components.vercel.app \
+  -e ISR_URL=https://lvd-isr.vercel.app \
+  -e DELAY=500
 
 # Repeated access test - tests cache hit performance
 k6 run scripts/k6/repeated-access.js \
-  -e CACHE_URL=https://your-cache-components.vercel.app \
-  -e ISR_URL=https://your-isr.vercel.app
+  -e CACHE_URL=https://lvd-cache-components.vercel.app \
+  -e ISR_URL=https://lvd-isr.vercel.app \
+  -e DELAY=500
+
+# Weather today page test - realistic traffic distribution
+k6 run scripts/k6/weather-today-page.js \
+  -e CACHE_URL=https://lvd-cache-components.vercel.app \
+  -e ISR_URL=https://lvd-isr.vercel.app \
+  -e DELAY=500
 ```
 
 ### Options
@@ -126,6 +135,12 @@ k6 run scripts/k6/repeated-access.js \
 - `-e UNIQUE_ROUTES=100` - Number of unique routes (default: 10000)
 - `-e HITS_PER_ROUTE=5` - Hits per route (default: 10)
 
+**Weather Today Page options:**
+- `-e TOTAL_REQUESTS=100000` - Total requests to make (default: 100000)
+- `-e POPULAR_ROUTES=100` - Number of popular routes / 50% traffic (default: 100)
+- `-e MEDIUM_ROUTES=1000` - Number of medium routes / 25% traffic (default: 1000)
+- `-e LONG_TAIL_ROUTES=17900` - Number of long-tail routes / 25% traffic (default: 17900)
+
 ### Metrics
 
 k6 provides built-in metrics plus custom metrics per app:
@@ -134,6 +149,10 @@ k6 provides built-in metrics plus custom metrics per app:
 - `cache_errors` / `isr_errors` - Error counts per app
 - `cache_first_hit_duration` / `isr_first_hit_duration` - First access times (repeated-access only)
 - `cache_cache_hit_duration` / `isr_cache_hit_duration` - Subsequent access times (repeated-access only)
+- `cache_estimated_hit_rate` / `isr_estimated_hit_rate` - Estimated hit rate (weather-today-page only)
+- `cache_miss_duration` / `isr_miss_duration` - First access times (weather-today-page only)
+- `cache_hit_duration` / `isr_hit_duration` - Repeated access times (weather-today-page only)
+- `popular/medium/long_tail_route_requests` - Requests per category (weather-today-page only)
 
 ## Tech Stack
 
