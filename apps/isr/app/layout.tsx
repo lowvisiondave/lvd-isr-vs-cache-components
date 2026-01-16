@@ -3,17 +3,24 @@ import Link from "next/link";
 import "./globals.css";
 import { Header, Sidebar } from "@repo/ui";
 
+// Weather cities for demo
 const sidebarLinks = [
   { href: "/", label: "Home" },
-  { href: "/0/page", label: "Page - 0ms" },
-  { href: "/250/page", label: "Page - 250ms" },
-  { href: "/500/page", label: "Page - 500ms" },
-  { href: "/2000/page", label: "Page - 2s" },
+  // Popular cities (high cache hit rate)
+  { href: "/new-york", label: "🏙️ New York" },
+  { href: "/los-angeles", label: "🌴 Los Angeles" },
+  { href: "/chicago", label: "🌬️ Chicago" },
+  { href: "/miami", label: "🌊 Miami" },
+  // Medium cities
+  { href: "/seattle", label: "☔ Seattle" },
+  { href: "/denver", label: "🏔️ Denver" },
+  // Long-tail example
+  { href: "/small-town-usa", label: "🏘️ Small Town" },
 ];
 
 export const metadata: Metadata = {
-  title: "ISR",
-  description: "Next.js ISR Demo",
+  title: "ISR Weather Demo",
+  description: "Next.js ISR Demo with Weather Data",
 };
 
 export default function RootLayout({
@@ -35,11 +42,11 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen">
-        <Header title="ISR" />
-        <div className="container mx-auto px-6 py-8 flex gap-10">
+      <body className="min-h-screen bg-background">
+        <Header title="ISR Weather Demo" />
+        <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
           <Sidebar links={sidebarLinks} linkComponent={Link as any} />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 min-w-0">{children}</main>
         </div>
       </body>
     </html>

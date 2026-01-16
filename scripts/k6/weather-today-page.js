@@ -5,15 +5,11 @@
  * - Popular cities get most traffic (cache hits)
  * - Long-tail small towns get sparse traffic (cache misses)
  *
- * Target metrics:
- * - Strict HIT ratio: ~67.6%
- * - Practical CDN effectiveness: ~79–81%
- * - Miss rate: ~19%
+ * Target metrics (based on real ISR app data: 17M reads / 34M writes):
+ * - HIT ratio: ~33%
+ * - Miss rate: ~67%
  *
- * Distribution:
- * - POPULAR_ROUTES (100): ~50% of traffic, heavily cached
- * - MEDIUM_ROUTES (1000): ~25% of traffic, moderate caching
- * - LONG_TAIL_ROUTES (~17900): ~25% of traffic, mostly misses
+ * Route distribution auto-scales based on TOTAL_REQUESTS to maintain target miss rate.
  *
  * Usage:
  *   k6 run scripts/k6/weather-today-page.js \
@@ -21,11 +17,9 @@
  *     -e ISR_URL=https://isr.vercel.app
  *
  * Options:
- *   -e VUS=50              Number of virtual users (default: 50)
+ *   -e VUS=50                 Number of virtual users (default: 50)
  *   -e TOTAL_REQUESTS=100000  Total requests to make (default: 100000)
- *   -e POPULAR_ROUTES=100     Number of popular routes (default: 100)
- *   -e MEDIUM_ROUTES=1000     Number of medium routes (default: 1000)
- *   -e LONG_TAIL_ROUTES=17900 Number of long-tail routes (default: 17900)
+ *   -e TARGET_MISS_RATE=0.67  Target cache miss rate (default: 0.67 for 17M:34M ratio)
  */
 
 import { check, sleep } from "k6";
@@ -34,7 +28,6 @@ import http from "k6/http";
 import { Counter, Rate, Trend } from "k6/metrics";
 import {
 	CACHE_URL,
-	DEFAULT_DELAY,
 	ISR_URL,
 	buildUrl,
 	defaultOptions,
@@ -45,16 +38,26 @@ import {
 const TOTAL_REQUESTS = Number.parseInt(__ENV.TOTAL_REQUESTS || "100000", 10);
 const VUS = Number.parseInt(__ENV.VUS || "50", 10);
 
-// Route distribution for ~19% miss rate
-// Total unique routes = POPULAR + MEDIUM + LONG_TAIL = ~19,000
-const POPULAR_ROUTES = Number.parseInt(__ENV.POPULAR_ROUTES || "100", 10);
-const MEDIUM_ROUTES = Number.parseInt(__ENV.MEDIUM_ROUTES || "1000", 10);
-const LONG_TAIL_ROUTES = Number.parseInt(__ENV.LONG_TAIL_ROUTES || "17900", 10);
+// Target miss rate based on real ISR data (17M reads / 34M writes = 67% misses)
+const TARGET_MISS_RATE = Number.parseFloat(__ENV.TARGET_MISS_RATE || "0.67");
 
 // Traffic distribution weights (should sum to 1.0)
-const POPULAR_WEIGHT = 0.50; // 50% of traffic goes to popular routes
-const MEDIUM_WEIGHT = 0.25; // 25% of traffic goes to medium routes
-const LONG_TAIL_WEIGHT = 0.25; // 25% of traffic goes to long-tail routes
+// Heavy long-tail bias to achieve high miss rate
+const POPULAR_WEIGHT = 0.10; // 10% of traffic goes to popular routes
+const MEDIUM_WEIGHT = 0.20; // 20% of traffic goes to medium routes
+const LONG_TAIL_WEIGHT = 0.70; // 70% of traffic goes to long-tail routes
+
+// Auto-calculate route counts based on total requests and target miss rate
+// Total unique routes needed = TOTAL_REQUESTS * TARGET_MISS_RATE
+const TOTAL_UNIQUE_ROUTES = Math.floor(TOTAL_REQUESTS * TARGET_MISS_RATE);
+
+// Distribute unique routes across categories
+// Popular: small fixed portion (high repeat hits) - ~0.15% of unique routes, min 50
+// Medium: moderate portion - ~7.5% of unique routes
+// Long-tail: majority - ~92.35% of unique routes (mostly single hits)
+const POPULAR_ROUTES = Math.max(50, Math.floor(TOTAL_UNIQUE_ROUTES * 0.0015));
+const MEDIUM_ROUTES = Math.floor(TOTAL_UNIQUE_ROUTES * 0.075);
+const LONG_TAIL_ROUTES = TOTAL_UNIQUE_ROUTES - POPULAR_ROUTES - MEDIUM_ROUTES;
 
 // Custom metrics for each app
 const cacheRequests = new Counter("cache_requests");
@@ -155,8 +158,7 @@ function getRandomRoute(iterationId) {
 export function setup() {
 	validateConfig();
 
-	const totalUniqueRoutes = POPULAR_ROUTES + MEDIUM_ROUTES + LONG_TAIL_ROUTES;
-	const expectedMissRate = (totalUniqueRoutes / TOTAL_REQUESTS * 100).toFixed(1);
+	const actualMissRate = (TOTAL_UNIQUE_ROUTES / TOTAL_REQUESTS * 100).toFixed(1);
 
 	// Calculate expected hit distribution
 	const expectedPopularHits = Math.floor(TOTAL_REQUESTS * POPULAR_WEIGHT);
@@ -167,22 +169,20 @@ export function setup() {
 	console.log("Weather Today Page Load Test");
 	console.log("=".repeat(60));
 	console.log("");
-	console.log("Target metrics:");
-	console.log("  - Strict HIT ratio: ~67.6%");
-	console.log("  - Practical CDN effectiveness: ~79-81%");
-	console.log("  - Miss rate: ~19%");
+	console.log("Target metrics (based on real ISR data: 17M reads / 34M writes):");
+	console.log(`  - Target miss rate: ${(TARGET_MISS_RATE * 100).toFixed(0)}%`);
+	console.log(`  - Target hit rate: ${((1 - TARGET_MISS_RATE) * 100).toFixed(0)}%`);
 	console.log("");
 	console.log("Configuration:");
 	console.log(`  Total requests: ${TOTAL_REQUESTS.toLocaleString()}`);
 	console.log(`  Virtual users (VUs): ${VUS}`);
-	console.log(`  Delay parameter: ${DEFAULT_DELAY}`);
 	console.log("");
-	console.log("Route distribution:");
+	console.log("Auto-scaled route distribution:");
 	console.log(`  Popular routes: ${POPULAR_ROUTES.toLocaleString()} (${(POPULAR_WEIGHT * 100).toFixed(0)}% of traffic = ~${expectedPopularHits.toLocaleString()} reqs)`);
 	console.log(`  Medium routes: ${MEDIUM_ROUTES.toLocaleString()} (${(MEDIUM_WEIGHT * 100).toFixed(0)}% of traffic = ~${expectedMediumHits.toLocaleString()} reqs)`);
 	console.log(`  Long-tail routes: ${LONG_TAIL_ROUTES.toLocaleString()} (${(LONG_TAIL_WEIGHT * 100).toFixed(0)}% of traffic = ~${expectedLongTailHits.toLocaleString()} reqs)`);
-	console.log(`  Total unique routes: ${totalUniqueRoutes.toLocaleString()}`);
-	console.log(`  Expected miss rate: ~${expectedMissRate}%`);
+	console.log(`  Total unique routes: ${TOTAL_UNIQUE_ROUTES.toLocaleString()}`);
+	console.log(`  Calculated miss rate: ~${actualMissRate}%`);
 	console.log("");
 	console.log("URLs:");
 	console.log(`  Cache Components: ${CACHE_URL}`);

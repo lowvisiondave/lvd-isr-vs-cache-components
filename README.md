@@ -1,6 +1,6 @@
 # ISR vs Cache Components Demo
 
-A side-by-side comparison of Next.js **ISR (Incremental Static Regeneration)** vs **Cache Components** (`"use cache"` directive).
+A side-by-side comparison of Next.js **ISR (Incremental Static Regeneration)** vs **Cache Components** (`"use cache"` directive) using a weather app example.
 
 ## What's Inside
 
@@ -9,21 +9,25 @@ This monorepo demonstrates two different caching strategies in Next.js:
 | App | Port | Caching Strategy |
 |-----|------|-----------------|
 | `apps/cache-components` | 3000 | Uses `"use cache"` directive for granular component-level caching |
-| `apps/isr` | 3001 | Uses ISR for page-level caching |
+| `apps/isr` | 3001 | Uses ISR with `force-static` for page-level caching |
 
 ### Key Differences
 
 **Cache Components (`"use cache"`):**
 - Component-level caching granularity
 - Cache individual async components independently
-- Dynamic segments work without pre-rendering all paths
-- No need for `generateStaticParams`
+- Different TTLs per component via `cacheLife()`
+- On-demand revalidation via `cacheTag()`
 
 **ISR:**
-- Page-level caching
+- Page-level caching with `force-static`
 - Entire page cached as one unit
-- No granular component-level control
-- Traditional Next.js approach
+- Uses `unstable_cache` for data-level TTLs
+- Page HTML regenerates atomically
+
+### Cache TTL
+
+Both apps use a **1 day** revalidation period for all cached data (weather, news, etc.) for simplicity and fair comparison.
 
 ## Getting Started
 
@@ -60,18 +64,20 @@ pnpm --filter isr dev
 │   ├── cache-components/    # Next.js app using "use cache"
 │   └── isr/                 # Next.js app using ISR
 ├── packages/
-│   └── ui/                  # Shared UI components
+│   └── ui/                  # Shared UI components and mock data
+├── scripts/
+│   └── k6/                  # Load testing scripts
 └── package.json
 ```
 
 ## How to Test
 
-1. Navigate to any page (e.g., `/page-1`)
-2. Note the "Created at" timestamp - this shows when the page/component was cached
+1. Navigate to any city page (e.g., `/new-york`)
+2. Note the "Page rendered at" timestamp
 3. Refresh the page and observe:
    - **Cache Components:** The cached component shows the same timestamp
    - **ISR:** The entire page shows the same timestamp until revalidation
-4. The "Client Fetch" section always shows fresh data (client-side)
+4. Weather data is fetched client-side in both apps for fair comparison
 
 ## Load Testing
 
@@ -94,11 +100,11 @@ sudo apt install k6
 
 ### Test Scenarios
 
-| Test | Description | Total Requests |
-|------|-------------|----------------|
-| **High Cardinality** | 100k unique routes (cache miss behavior) | 100,000 |
-| **Repeated Access** | 10k routes × 10 hits each (cache hit behavior) | 100,000 |
-| **Weather Today Page** | Realistic traffic with ~67.6% HIT / ~19% MISS rate | 100,000 |
+| Test | Description | Default Requests |
+|------|-------------|------------------|
+| **High Cardinality** | Unique routes only (100% cache miss) | 100,000 |
+| **Repeated Access** | Routes hit multiple times (90% cache hit) | 100,000 |
+| **Weather Today** | Realistic traffic distribution (~33% hit / ~67% miss) | 100,000 |
 
 ### Running the Tests
 
@@ -106,27 +112,23 @@ sudo apt install k6
 # High cardinality test - tests cache miss / on-demand generation
 k6 run scripts/k6/high-cardinality.js \
   -e CACHE_URL=https://lvd-cache-components.vercel.app \
-  -e ISR_URL=https://lvd-isr.vercel.app \
-  -e DELAY=500
+  -e ISR_URL=https://lvd-isr.vercel.app
 
 # Repeated access test - tests cache hit performance
 k6 run scripts/k6/repeated-access.js \
   -e CACHE_URL=https://lvd-cache-components.vercel.app \
-  -e ISR_URL=https://lvd-isr.vercel.app \
-  -e DELAY=500
+  -e ISR_URL=https://lvd-isr.vercel.app
 
 # Weather today page test - realistic traffic distribution
 k6 run scripts/k6/weather-today-page.js \
   -e CACHE_URL=https://lvd-cache-components.vercel.app \
-  -e ISR_URL=https://lvd-isr.vercel.app \
-  -e DELAY=500
+  -e ISR_URL=https://lvd-isr.vercel.app
 ```
 
 ### Options
 
 **Common options:**
 - `-e VUS=100` - Number of virtual users / concurrent connections (default: 50)
-- `-e DELAY=500` - Delay parameter for routes `/{delay}/{slug}` (default: 0)
 
 **High Cardinality options:**
 - `-e ITERATIONS=1000` - Number of unique routes to test (default: 100000)
@@ -136,23 +138,25 @@ k6 run scripts/k6/weather-today-page.js \
 - `-e HITS_PER_ROUTE=5` - Hits per route (default: 10)
 
 **Weather Today Page options:**
-- `-e TOTAL_REQUESTS=100000` - Total requests to make (default: 100000)
-- `-e POPULAR_ROUTES=100` - Number of popular routes / 50% traffic (default: 100)
-- `-e MEDIUM_ROUTES=1000` - Number of medium routes / 25% traffic (default: 1000)
-- `-e LONG_TAIL_ROUTES=17900` - Number of long-tail routes / 25% traffic (default: 17900)
+- `-e TOTAL_REQUESTS=1000000` - Total requests to make (default: 100000)
+- `-e TARGET_MISS_RATE=0.67` - Target cache miss rate (default: 0.67)
+
+Route distribution auto-scales based on `TOTAL_REQUESTS` and `TARGET_MISS_RATE`.
 
 ### Metrics
 
 k6 provides built-in metrics plus custom metrics per app:
 
-- `cache_duration` / `isr_duration` - Response times per app
-- `cache_errors` / `isr_errors` - Error counts per app
-- `cache_first_hit_duration` / `isr_first_hit_duration` - First access times (repeated-access only)
-- `cache_cache_hit_duration` / `isr_cache_hit_duration` - Subsequent access times (repeated-access only)
-- `cache_estimated_hit_rate` / `isr_estimated_hit_rate` - Estimated hit rate (weather-today-page only)
-- `cache_miss_duration` / `isr_miss_duration` - First access times (weather-today-page only)
-- `cache_hit_duration` / `isr_hit_duration` - Repeated access times (weather-today-page only)
-- `popular/medium/long_tail_route_requests` - Requests per category (weather-today-page only)
+| Metric | Description | Test |
+|--------|-------------|------|
+| `cache_duration` / `isr_duration` | Response times per app | All |
+| `cache_errors` / `isr_errors` | Error counts per app | All |
+| `cache_first_hit_duration` / `isr_first_hit_duration` | First access times | repeated-access |
+| `cache_cache_hit_duration` / `isr_cache_hit_duration` | Subsequent access times | repeated-access |
+| `cache_estimated_hit_rate` / `isr_estimated_hit_rate` | Estimated hit rate | weather-today |
+| `cache_miss_duration` / `isr_miss_duration` | First access times | weather-today |
+| `cache_hit_duration` / `isr_hit_duration` | Repeated access times | weather-today |
+| `popular/medium/long_tail_route_requests` | Requests per category | weather-today |
 
 ## Tech Stack
 

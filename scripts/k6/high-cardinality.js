@@ -1,7 +1,7 @@
 /**
  * High Cardinality Load Test
  *
- * Tests 100,000 unique routes to measure cache miss / on-demand generation performance.
+ * Tests unique routes to measure cache miss / on-demand generation performance.
  * Each route is only hit once, testing how well the system handles high cardinality.
  *
  * Usage:
@@ -10,8 +10,8 @@
  *     -e ISR_URL=https://isr.vercel.app
  *
  * Options:
- *   --vus 50         Number of virtual users (default: 50)
- *   --duration 0     Run until all iterations complete (default behavior)
+ *   -e VUS=50            Number of virtual users (default: 50)
+ *   -e ITERATIONS=100000 Number of unique routes to test (default: 100000)
  */
 
 import { check, sleep } from "k6";
@@ -20,7 +20,6 @@ import http from "k6/http";
 import { Counter, Trend } from "k6/metrics";
 import {
 	CACHE_URL,
-	DEFAULT_DELAY,
 	ISR_URL,
 	buildUrl,
 	defaultOptions,
@@ -58,11 +57,15 @@ export function setup() {
 	console.log("=".repeat(60));
 	console.log("High Cardinality Load Test");
 	console.log("=".repeat(60));
-	console.log(`Total unique routes: ${TOTAL_ROUTES.toLocaleString()}`);
-	console.log(`Virtual users (VUs): ${VUS}`);
-	console.log(`Delay parameter: ${DEFAULT_DELAY}`);
-	console.log(`Cache Components URL: ${CACHE_URL}`);
-	console.log(`ISR URL: ${ISR_URL}`);
+	console.log("");
+	console.log("Configuration:");
+	console.log(`  Total unique routes: ${TOTAL_ROUTES.toLocaleString()}`);
+	console.log(`  Virtual users (VUs): ${VUS}`);
+	console.log(`  Expected hit rate: 0% (each route hit once)`);
+	console.log("");
+	console.log("URLs:");
+	console.log(`  Cache Components: ${CACHE_URL}`);
+	console.log(`  ISR: ${ISR_URL}`);
 	console.log("=".repeat(60));
 
 	return { startTime: Date.now() };
@@ -115,7 +118,13 @@ export default function (data) {
 
 export function teardown(data) {
 	const duration = (Date.now() - data.startTime) / 1000;
+
 	console.log("=".repeat(60));
 	console.log(`Test completed in ${duration.toFixed(2)} seconds`);
+	console.log("");
+	console.log("Metrics explanation:");
+	console.log("  - cache_duration / isr_duration:");
+	console.log("    Response times for cache miss (on-demand generation)");
 	console.log("=".repeat(60));
 }
+
